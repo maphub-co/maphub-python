@@ -4,14 +4,14 @@ import requests
 
 
 class MapHubClient:
-    def __init__(self, api_key: str | None, base_url: str = "https://api.maphub.co"):
+    def __init__(self, api_key: str | None, base_url: str = "https://api-main-432878571563.europe-west4.run.app"):
         self.api_key = api_key
         self.base_url = base_url
         self.session = requests.Session()
 
         if self.api_key:
             self.session.headers.update({
-                "Authorization": f"Bearer {self.api_key}"
+                "X-API-Key": f"{self.api_key}"
             })
 
     def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
