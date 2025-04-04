@@ -1,4 +1,4 @@
-# maphub-client
+# maphub
 
 ## Usage
 
