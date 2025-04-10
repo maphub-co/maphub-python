@@ -74,6 +74,18 @@ class MapHubClient:
         """
         return self._make_request("GET", f"/maps/{map_id}")
 
+    def get_maps(self, project_id: uuid.UUID) -> List[Dict[str, Any]]:
+        """
+        Fetches a list of maps associated with a specific project.
+
+        :param project_id: A UUID identifying the project whose maps are being fetched.
+        :type project_id: uuid.UUID
+        :return: A list of dictionaries containing map data. Each dictionary represents
+                 a map associated with the specified project.
+        :rtype: List[Dict[str, Any]]
+        """
+        return self._make_request("GET", f"/maps", params={"project_id": project_id})
+
     def get_tiler_url(self, map_id: uuid.UUID, version_id: uuid.UUID = None, alias: str = None) -> str:
         """
         Constructs a request to retrieve the tiler URL for a given map.
