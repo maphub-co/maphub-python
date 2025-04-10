@@ -27,7 +27,7 @@ class MapHubClient:
         except:
             raise APIException(response.status_code, response.json()['detail'])
 
-        return response.json()
+        return response
 
     # Project endpoints
     def get_project(self, project_id: uuid.UUID) -> Dict[str, Any]:
@@ -39,7 +39,7 @@ class MapHubClient:
         :return: A dictionary containing the project details.
         :rtype: Dict[str, Any]
         """
-        return self._make_request("GET", f"/projects/{project_id}")
+        return self._make_request("GET", f"/projects/{project_id}").json()
 
     def get_projects(self) -> List[Dict[str, Any]]:
         """
@@ -49,7 +49,7 @@ class MapHubClient:
         :return: A list of projects.
         :rtype: List[Dict[str, Any]]
         """
-        return self._make_request("GET", "/projects")
+        return self._make_request("GET", "/projects").json()
 
     def create_project(self, project_name: str) -> Dict[str, Any]:
         """
@@ -60,7 +60,7 @@ class MapHubClient:
         :return: Response containing the created project.
         :rtype: Dict[str, Any]
         """
-        return self._make_request("POST", "/projects", params={"project_name": project_name})
+        return self._make_request("POST", "/projects", params={"project_name": project_name}).json()
 
     # Map endpoints
     def get_map(self, map_id: uuid.UUID) -> Dict[str, Any]:
@@ -72,7 +72,7 @@ class MapHubClient:
         :return: The specified map.
         :rtype: Dict[str, Any]
         """
-        return self._make_request("GET", f"/maps/{map_id}")
+        return self._make_request("GET", f"/maps/{map_id}").json()
 
     def get_maps(self, project_id: uuid.UUID) -> List[Dict[str, Any]]:
         """
@@ -84,7 +84,20 @@ class MapHubClient:
                  a map associated with the specified project.
         :rtype: List[Dict[str, Any]]
         """
-        return self._make_request("GET", f"/maps", params={"project_id": project_id})
+        return self._make_request("GET", f"/maps", params={"project_id": project_id}).json()
+
+    def get_thumbnail(self, map_id: uuid.UUID) -> bytes:
+        """
+        Fetches the thumbnail image for a given map using its unique identifier.
+
+        :param map_id: The universally unique identifier (UUID) of the map for
+                       which the thumbnail image is to be fetched.
+        :type map_id: uuid.UUID
+        :return: The binary content of the thumbnail image associated with the
+                 specified map.
+        :rtype: bytes
+        """
+        return self._make_request("GET", f"/maps/{map_id}/thumbnail").content
 
     def get_tiler_url(self, map_id: uuid.UUID, version_id: uuid.UUID = None, alias: str = None) -> str:
         """
@@ -104,7 +117,28 @@ class MapHubClient:
         if alias is None:
             params["alias"] = alias
 
-        return self._make_request("GET", f"/maps/{map_id}/tiler_url", params=params)
+        return self._make_request("GET", f"/maps/{map_id}/tiler_url", params=params).json()
+
+    def get_layer_info(self, map_id: uuid.UUID, version_id: uuid.UUID = None, alias: str = None) -> Dict[str, Any] :
+        """
+        Constructs a request to retrieve the tiler URL for a given map.
+
+        :param map_id: The UUID of the map for which the tiler URL is being requested.
+        :param version_id: An optional UUID specifying the particular version of the
+            map to retrieve the tiler URL for.
+        :param alias: An optional string specifying an alias for the map version.
+        :return: A string representing the tiler URL.
+        """
+        params = {}
+
+        if version_id is None:
+            params["version_id"] = version_id
+
+        if alias is None:
+            params["alias"] = alias
+
+        return self._make_request("GET", f"/maps/{map_id}/layer_info", params=params).json()
+
 
     def upload_map(self, map_name: str, project_id: uuid.UUID, public: bool, path: str):
         """
@@ -141,6 +175,6 @@ class MapHubClient:
         :type path: str
         :return: None
         """
-        response = self.session.get(f"{self.base_url}/maps/{map_id}/download")
+        response = self._make_request("GET", f"/maps/{map_id}/download")
         with open(path, "wb") as f:
             f.write(response.content)
