@@ -1,5 +1,6 @@
 # MapHub
 
+[![PyPI Version](https://img.shields.io/pypi/v/maphub.svg)](https://pypi.org/project/maphub/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/maphub.svg?label=PyPI%20downloads)](
 https://pypi.org/project/maphub/)
 
