@@ -76,7 +76,7 @@ class MapHubClient:
         """
         return self._make_request("GET", f"/maps", params={"project_id": project_id}).json()
 
-    def get_public_maps(self, sort_by: str = None, page: int = None, page_size: int = None) -> List[Dict[str, Any]]:
+    def get_public_maps(self, sort_by: str = None, page: int = None, page_size: int = None) -> Dict[str, Any]:
         """
         Fetches a list of public maps with optional sorting and pagination.
 
@@ -180,7 +180,7 @@ class MapHubClient:
 
         return self._make_request("GET", f"/maps/{map_id}/tiler_url", params=params).json()
 
-    def get_layer_info(self, map_id: uuid.UUID, version_id: uuid.UUID = None, alias: str = None) -> Dict[str, Any] :
+    def get_layer_info(self, map_id: uuid.UUID, version_id: uuid.UUID = None, alias: str = None) -> Dict[str, Any]:
         """
         Constructs a request to retrieve the tiler URL for a given map.
 
