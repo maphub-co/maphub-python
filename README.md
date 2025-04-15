@@ -1,4 +1,8 @@
-# maphub
+# MapHub
+
+[![PyPI Downloads](https://img.shields.io/pypi/dm/maphub.svg?label=PyPI%20downloads)](
+https://pypi.org/project/maphub/)
+
 
 ## Installation
 ### pip
