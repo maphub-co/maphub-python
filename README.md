@@ -1,5 +1,11 @@
 # maphub
 
+## Installation
+### pip
+```sh 
+pip install maphub
+```
+
 ## Usage
 
 ### Python package
