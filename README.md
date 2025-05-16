@@ -14,21 +14,57 @@ pip install maphub
 ## Usage
 
 ### Python package
-This example demonstrates how to upload a Map from the local path to a MapHub project with the name `France`.
+This example demonstrates how to upload a Map from the local path to a MapHub folder with the name `France`.
 ```python 
 from maphub import MapHubClient
 
 client = MapHubClient(api_key="your-api-key")
-france_project = client.create_project("France")
+root_folder = client.folder.get_root_folder()
+france_folder = client.folder.create_folder("France", root_folder["folder"]["id"])
 
-client.upload_map(
+client.maps.upload_map(
     map_name="France Population",
-    project_id=france_project['id'],
+    folder_id=france_folder['id'],
     public=False,
     path="path/to/GIS/data.gpkg"
 )
 ```
 
-### CLI
-Coming soon...
+> **Note**: The direct endpoint methods (e.g., `client.create_project()`, `client.upload_map()`) are deprecated and will be removed in a future version. Use the endpoint classes instead (e.g., `client.folder.create_folder()`, `client.map.upload_map()`).
 
+### CLI
+The MapHub CLI provides a command-line interface for interacting with the MapHub API. It allows you to authenticate with an API key and upload maps to your folders.
+
+#### Authentication
+Before using the CLI, you need to authenticate with your MapHub API key:
+
+```sh
+maphub auth YOUR_API_KEY
+```
+
+This will save your API key to `~/.maphub/config.json` for future use.
+
+#### Uploading Maps
+To upload a GIS file to your root folder:
+
+```sh
+maphub upload path/to/your/file.gpkg
+```
+
+The map name will be extracted from the file name (without extension).
+
+To upload a GIS file to a specific folder:
+
+```sh
+maphub upload path/to/your/file.gpkg --folder-id YOUR_FOLDER_ID
+```
+
+If you don't specify a folder ID, the map will be uploaded to your root folder.
+
+To upload a GIS file with a custom map name:
+
+```sh
+maphub upload path/to/your/file.gpkg --map-name "My Custom Map Name"
+```
+
+If you don't specify a map name, it will be extracted from the file name (without extension).
