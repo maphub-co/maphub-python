@@ -19,7 +19,8 @@ This example demonstrates how to upload a Map from the local path to a MapHub fo
 from maphub import MapHubClient
 
 client = MapHubClient(api_key="your-api-key")
-root_folder = client.folder.get_root_folder()
+personal_workspace = client.workspace.get_personal_workspace()
+root_folder = client.folder.get_root_folder(personal_workspace["id"])
 france_folder = client.folder.create_folder("France", root_folder["folder"]["id"])
 
 client.maps.upload_map(
