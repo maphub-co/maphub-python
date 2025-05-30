@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maphub"
-version = "0.2.3"
+version = "0.2.4"
 description = "A Python wrapper for the MapHub API"
 readme = "README.md"
 authors = [
@@ -14,7 +14,7 @@ requires-python = ">=3.12"
 dependencies = [
     "requests>=2.25.1",
 ]
-urls = {repository = "https://github.com/username/maphub"}
+urls = {repository = "https://github.com/meteory-org/maphub-python"}
 
 [project.scripts]
 maphub = "maphub.cli:main"
