@@ -1,3 +1,4 @@
+import json
 import uuid
 import warnings
 from typing import Dict, Any, Optional, List
@@ -73,7 +74,7 @@ class MapsEndpoint(BaseEndpoint):
         return self._make_request("GET", f"/maps/{map_id}/layer_info", params=params).json()
     
     def upload_map(self, map_name: str, folder_id: uuid.UUID = None, public: bool = False,
-                   path: str = None):
+                   path: str = None) -> Dict[str, Any]:
         """
         Uploads a map to the server.
         
@@ -99,7 +100,7 @@ class MapsEndpoint(BaseEndpoint):
         }
         
         with open(path, "rb") as f:
-            return self._make_request("POST", f"/maps", params=params, files={"file": f})
+            return self._make_request("POST", f"/maps", params=params, files={"file": f}).json()
     
     def download_map(self, map_id: uuid.UUID, path: str):
         """
@@ -114,6 +115,19 @@ class MapsEndpoint(BaseEndpoint):
         response = self._make_request("GET", f"/maps/{map_id}/download")
         with open(path, "wb") as f:
             f.write(response.content)
+
+    def set_visuals(self, map_id: uuid.UUID, visuals: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Updates the visuals configuration of a specified map by sending a POST request
+        to the corresponding API endpoint with the provided data.
+
+        :param map_id: Unique identifier for the map.
+        :param visuals: Dictionary containing the details of the visuals configuration
+                        to apply to the map.
+        :return: The response obtained from executing the request to the API as returned
+                 by the `_make_request` method.
+        """
+        return self._make_request("PUT", f"/maps/{map_id}/visuals", data=json.dumps(visuals)).json()
 
 
     ### Maps endpoints
