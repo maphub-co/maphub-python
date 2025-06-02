@@ -69,3 +69,36 @@ maphub upload path/to/your/file.gpkg --map-name "My Custom Map Name"
 ```
 
 If you don't specify a map name, it will be extracted from the file name (without extension).
+
+#### Cloning Maps and Folders
+To clone a map or folder from MapHub to your local machine:
+
+```sh
+maphub clone MAP_OR_FOLDER_ID
+```
+
+This will clone the map or folder to the current directory.
+
+To specify an output directory:
+
+```sh
+maphub clone MAP_OR_FOLDER_ID --output path/to/output/directory
+```
+
+#### Pulling Changes
+To pull the latest changes from MapHub to your local clone:
+
+```sh
+maphub pull
+```
+
+This command should be run from within a directory that was previously cloned. It will update any maps that have changed on the server.
+
+#### Pushing Changes
+To push your local changes back to MapHub:
+
+```sh
+maphub push
+```
+
+This command should be run from within a directory that was previously cloned. It will upload any maps that have changed locally.
