@@ -394,12 +394,3 @@ class MapHubClient:
             stacklevel=2
         )
         return self.maps.download_map(map_id, path)
-
-
-if __name__ == "__main__":
-    client = MapHubClient("19Vnp5vD6P0CG7d61fr2dkfic7Z5nk7gE-xAntxppXI", "http://localhost:8000")
-
-    # print(client.get_thumbnail(uuid.UUID("0161e302-d82f-4e52-9041-52037f210ac9")))
-    # print(client.get_tiler_url(uuid.UUID("0161e302-d82f-4e52-9041-52037f210ac9")))
-    print(client.get_public_maps())
-    # client.download_map(uuid.UUID("0161e302-d82f-4e52-9041-52037f210ac9"), "test.tif")

@@ -8,6 +8,7 @@ It allows users to authenticate with an API key and upload maps to their project
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -18,6 +19,26 @@ from .exceptions import APIException
 # Define the config directory and file path
 CONFIG_DIR = Path.home() / ".maphub"
 CONFIG_FILE = CONFIG_DIR / "config.json"
+
+
+def __get_api_client__() -> MapHubClient:
+    """
+    Initializes and returns an instance of MapHubClient using the provided API key
+    stored in the configuration file. If the configuration file does not exist or
+    the JSON is invalid, the program will print an error message and terminate.
+
+    :return: An instance of MapHubClient initialized with the API key if found in
+             the configuration file.
+    :rtype: MapHubClient
+    """
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            config = json.load(f)
+            api_key = config.get("api_key")
+            return MapHubClient(api_key=api_key)
+    except (json.JSONDecodeError, FileNotFoundError):
+        print("Error: No API key found. Please run 'maphub auth API_KEY' first.", file=sys.stderr)
+        sys.exit(1)
 
 
 def save_api_key(api_key: str) -> None:
@@ -37,23 +58,6 @@ def save_api_key(api_key: str) -> None:
     print(f"API key saved successfully to {CONFIG_FILE}")
 
 
-def load_api_key() -> Optional[str]:
-    """
-    Load the API key from the local configuration file.
-
-    Returns:
-        The API key if found, None otherwise
-    """
-    if not CONFIG_FILE.exists():
-        return None
-
-    try:
-        with open(CONFIG_FILE, "r") as f:
-            config = json.load(f)
-            return config.get("api_key")
-    except (json.JSONDecodeError, FileNotFoundError):
-        return None
-
 
 def auth_command(args) -> None:
     """
@@ -72,20 +76,14 @@ def upload_command(args) -> None:
     Args:
         args: Command-line arguments
     """
-    # Load the API key
-    api_key = load_api_key()
-    if not api_key:
-        print("Error: No API key found. Please run 'maphub auth API_KEY' first.")
-        sys.exit(1)
-
     # Check if the file exists
     file_path = Path(args.file_path)
     if not file_path.exists():
-        print(f"Error: File not found: {file_path}")
+        print(f"Error: File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
 
     # Create the client
-    client = MapHubClient(api_key=api_key)
+    client = __get_api_client__()
 
     try:
         # Use the provided folder_id if available, otherwise use the root folder
@@ -114,10 +112,10 @@ def upload_command(args) -> None:
         print(f"Map uploaded successfully!")
 
     except APIException as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        print(f"Unexpected error: {e}", file=sys.stderr)
         sys.exit(1)
 
 
