@@ -8,6 +8,7 @@ from .endpoints.workspace import WorkspaceEndpoint
 from .endpoints.folder import FolderEndpoint
 from .endpoints.project import ProjectEndpoint
 from .endpoints.maps import MapsEndpoint
+from .endpoints.versions import VersionEndpoint
 
 
 class MapHubClient:
@@ -28,6 +29,7 @@ class MapHubClient:
         self.folder = FolderEndpoint(api_key, base_url, self.session)
         self.project = ProjectEndpoint(api_key, base_url, self.session)
         self.maps = MapsEndpoint(api_key, base_url, self.session)
+        self.versions = VersionEndpoint(api_key, base_url, self.session)
 
     # Workspace endpoints
     def get_personal_workspace(self) -> Dict[str, Any]:

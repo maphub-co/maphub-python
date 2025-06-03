@@ -351,8 +351,8 @@ def pull_map(client: MapHubClient, map_id: uuid.UUID, map_metadata: Dict[str, An
         print(f"Error pulling map {map_id}: {e}")
 
 
-def push_map(client: MapHubClient, map_id: uuid.UUID, map_metadata: Dict[str, Any], 
-            folder_id: uuid.UUID, root_dir: Path, maphub_dir: Path) -> None:
+def push_map(client: MapHubClient, map_id: uuid.UUID, map_metadata: Dict[str, Any], root_dir: Path, maphub_dir: Path,
+            version_description: Optional[str] = None) -> None:
     """
     Push updates for a single map to MapHub.
 
@@ -363,6 +363,7 @@ def push_map(client: MapHubClient, map_id: uuid.UUID, map_metadata: Dict[str, An
         folder_id: UUID of the folder containing the map
         root_dir: Root directory of the repository
         maphub_dir: Path to the .maphub directory
+        version_description: Optional description for the new version
     """
     try:
         # Check if the local file has changed
@@ -377,11 +378,15 @@ def push_map(client: MapHubClient, map_id: uuid.UUID, map_metadata: Dict[str, An
         if current_checksum != map_metadata["checksum"]:
             print(f"Pushing updates for map: {map_path.stem}")
 
-            # Upload the updated map
-            response = client.maps.upload_map(
-                map_name=map_path.stem,
-                folder_id=folder_id,
-                public=False,
+            # Set default version description if not provided
+            if version_description is None:
+                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                version_description = f"Update from CLI at {current_time}"
+
+            # Upload a new version of the map using version endpoint
+            response = client.versions.upload_version(
+                map_id=map_id,
+                version_description=version_description,
                 path=str(map_path)
             )
 
@@ -527,7 +532,7 @@ def pull_folder(client: MapHubClient, folder_id: uuid.UUID, local_path: Path,
 
 
 def push_folder(client: MapHubClient, folder_id: uuid.UUID, local_path: Path, 
-               root_dir: Path, maphub_dir: Path) -> None:
+               root_dir: Path, maphub_dir: Path, version_description: Optional[str] = None) -> None:
     """
     Recursively push updates for a folder and its contents to MapHub.
 
@@ -537,6 +542,7 @@ def push_folder(client: MapHubClient, folder_id: uuid.UUID, local_path: Path,
         local_path: Local path of the folder
         root_dir: Root directory of the repository
         maphub_dir: Path to the .maphub directory
+        version_description: Optional description for the new versions
     """
     folder_file = maphub_dir / "folders" / f"{folder_id}.json"
 
@@ -563,7 +569,7 @@ def push_folder(client: MapHubClient, folder_id: uuid.UUID, local_path: Path,
         with open(map_file, "r") as f:
             map_metadata = json.load(f)
 
-        push_map(client, uuid.UUID(map_id), map_metadata, folder_id, root_dir, maphub_dir)
+        push_map(client, uuid.UUID(map_id), map_metadata, root_dir, maphub_dir, version_description)
 
     # Recursively push subfolders
     for subfolder_id in folder_metadata["subfolders"]:
@@ -577,7 +583,7 @@ def push_folder(client: MapHubClient, folder_id: uuid.UUID, local_path: Path,
             subfolder_metadata = json.load(f)
 
         subfolder_path = local_path / subfolder_metadata["name"]
-        push_folder(client, uuid.UUID(subfolder_id), subfolder_path, root_dir, maphub_dir)
+        push_folder(client, uuid.UUID(subfolder_id), subfolder_path, root_dir, maphub_dir, version_description)
 
 
 # Main command functions
@@ -793,7 +799,7 @@ def push_command(args) -> None:
                 root_folder = client.folder.get_root_folder(personal_workspace["id"])
                 folder_id = root_folder["folder"]["id"]
 
-            push_map(client, remote_id, map_metadata, uuid.UUID(folder_id), root_dir, maphub_dir)
+            push_map(client, remote_id, map_metadata, uuid.UUID(folder_id), root_dir, maphub_dir, args.description)
 
             # Update config
             config["last_sync"] = datetime.now().isoformat()
@@ -807,7 +813,7 @@ def push_command(args) -> None:
 
     # Start pushing from the root folder
     try:
-        push_folder(client, remote_id, root_dir, root_dir, maphub_dir)
+        push_folder(client, remote_id, root_dir, root_dir, maphub_dir, args.description)
 
         # Update config
         config["last_sync"] = datetime.now().isoformat()
@@ -853,6 +859,7 @@ def main() -> None:
 
     # Push command
     push_parser = subparsers.add_parser("push", help="Push local version of a Map or Folder to MapHub")
+    push_parser.add_argument("--description", help="Description for the new version", default=None)
     push_parser.set_defaults(func=push_command)
 
 
