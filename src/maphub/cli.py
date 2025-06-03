@@ -13,7 +13,7 @@ import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Optional
 
 from .client import MapHubClient
 from .exceptions import APIException
@@ -134,36 +134,37 @@ def find_repository_root() -> Optional[Path]:
     current_dir = Path.cwd()
     root_dir = current_dir
 
-    while not (root_dir / ".maphub").exists():
+    while not (root_dir / ".maphub").exists() or root_dir == Path.home():
         if root_dir.parent == root_dir:  # Reached filesystem root
             return None
         root_dir = root_dir.parent
 
+    print(root_dir)
     return root_dir
 
 # Main command functions
 
 def clone_command(args) -> None:
     """
-    Clone a map or folder from MapHub to local directory.
+    Clone a folder from MapHub to local directory.
 
     Args:
         args: Command-line arguments containing:
-            - id: ID of the map or folder to clone
+            - id: ID of the folder to clone
             - output: Path to the output directory
     """
     # Create the client
     client = __get_api_client__()
 
     # Get the ID from args
-    resource_id = uuid.UUID(args.id)
+    folder_id = uuid.UUID(args.id)
     output_dir = Path(args.output).resolve()
 
     # Use the client's clone method
     try:
-        client.clone(resource_id, output_dir)
+        client.clone(folder_id, output_dir)
     except Exception as e:
-        print(f"Error: Failed to clone resource with ID {resource_id}: {e}")
+        print(f"Error: Failed to clone folder with ID {folder_id}: {e}")
         import traceback
         traceback.print_exc()
         return
@@ -174,7 +175,7 @@ def pull_command(args) -> None:
     Pull latest changes from MapHub.
 
     This command should be run from within a directory that was previously cloned.
-    It will update any maps that have changed on the server.
+    It will update any maps in the folder that have changed on the server.
     """
     # Find the root directory (containing .maphub)
     root_dir = find_repository_root()
@@ -200,7 +201,7 @@ def push_command(args) -> None:
     Push local changes to MapHub.
 
     This command should be run from within a directory that was previously cloned.
-    It will upload any maps that have changed locally.
+    It will upload any maps in the folder that have changed locally.
     """
     # Find the root directory (containing .maphub)
     root_dir = find_repository_root()
@@ -241,17 +242,17 @@ def main() -> None:
     upload_parser.set_defaults(func=upload_command)
 
     # Clone command
-    clone_parser = subparsers.add_parser("clone", help="Clone a Map or Folder")
-    clone_parser.add_argument("id", help="ID of the Map or Folder to clone")
+    clone_parser = subparsers.add_parser("clone", help="Clone a Folder")
+    clone_parser.add_argument("id", help="ID of the Folder to clone")
     clone_parser.add_argument("--output", help="The path to the desired output folder.", default=".")
     clone_parser.set_defaults(func=clone_command)
 
     # Pull command
-    pull_parser = subparsers.add_parser("pull", help="Pull latest version from a Map or Folder on MapHub")
+    pull_parser = subparsers.add_parser("pull", help="Pull latest version from a Folder on MapHub")
     pull_parser.set_defaults(func=pull_command)
 
     # Push command
-    push_parser = subparsers.add_parser("push", help="Push local version of a Map or Folder to MapHub")
+    push_parser = subparsers.add_parser("push", help="Push local version of a Folder to MapHub")
     push_parser.add_argument("--description", help="Description for the new version", default=None)
     push_parser.set_defaults(func=push_command)
 

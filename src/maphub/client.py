@@ -464,7 +464,7 @@ class MapHubClient:
             "id": str(map_id),
             "name": map_data.get("name", "unnamed"),
             "type": map_data.get("type", "unknown"),
-            "version_id": map_data.get("latest_version_id", str(uuid.uuid4())),
+            "version_id": map_data["latest_version_id"],
             "checksum": self._calculate_checksum(file_path),
             "path": str(Path(file_path).relative_to(output_dir)),
             "last_modified": map_data.get("updated_at")
@@ -582,7 +582,7 @@ class MapHubClient:
             map_data = self.maps.get_map(map_id)
 
             # Check if the version has changed
-            if map_data.get('map').get("latest_version_id") != map_metadata["version_id"]:
+            if map_data.get('map', {})["latest_version_id"] != map_metadata["version_id"]:
                 print(f"Pulling updates for map: {map_data.get('map', {}).get('name', 'Unnamed Map')}")
 
                 # Get the current map path
@@ -595,7 +595,7 @@ class MapHubClient:
                 self.maps.download_map(map_id, file_path)
 
                 # Update metadata
-                map_metadata["version_id"] = map_data.get("version_id", str(uuid.uuid4()))
+                map_metadata["version_id"] = map_data.get('map', {})["latest_version_id"]
                 map_metadata["checksum"] = map_data.get("checksum", self._calculate_checksum(file_path))
                 map_metadata["last_modified"] = map_data.get("updated_at")
                 map_metadata["path"] = str(Path(file_path).relative_to(root_dir))
@@ -647,7 +647,7 @@ class MapHubClient:
                 )
 
                 # Update metadata
-                map_metadata["version_id"] = response.get("version_id", str(uuid.uuid4()))
+                map_metadata["version_id"] = response["task_id"]
                 map_metadata["checksum"] = response.get("checksum", current_checksum)
                 map_metadata["last_modified"] = response.get("updated_at")
 
@@ -843,42 +843,20 @@ class MapHubClient:
             import traceback
             traceback.print_exc()
 
-    def clone(self, resource_id: uuid.UUID, output_dir: Path) -> None:
+    def clone(self, folder_id: uuid.UUID, output_dir: Path) -> None:
         """
-        Clone a map or folder from MapHub to local directory.
+        Clone a folder from MapHub to local directory.
 
         Args:
-            resource_id: ID of the map or folder to clone
+            folder_id: ID of the folder to clone
             output_dir: Path to the output directory
         """
         # Create output directory if it doesn't exist
         output_dir.mkdir(exist_ok=True)
 
-        # Try to get as map first
-        try:
-            # For maps, create .maphub directory in the output directory
-            maphub_dir = output_dir / ".maphub"
-            maphub_dir.mkdir(exist_ok=True)
-            (maphub_dir / "maps").mkdir(exist_ok=True)
-            (maphub_dir / "folders").mkdir(exist_ok=True)
-
-            # Save config
-            with open(maphub_dir / "config.json", "w") as f:
-                json.dump({
-                    "remote_id": str(resource_id),
-                    "last_sync": datetime.now().isoformat()
-                }, f, indent=2)
-
-            self.clone_map(resource_id, output_dir, maphub_dir)
-            return
-        except Exception as e:
-            # Not a map, try as folder
-            print(f"Not a map or error occurred: {e}. Trying as folder...")
-
-        # Try to get as folder
         try:
             # For folders, first clone the folder structure
-            result_path = self.clone_folder(resource_id, output_dir, output_dir, None)
+            result_path = self.clone_folder(folder_id, output_dir, output_dir, None)
 
             # Then create .maphub directory inside the cloned folder
             maphub_dir = result_path / ".maphub"
@@ -889,12 +867,12 @@ class MapHubClient:
             # Save config
             with open(maphub_dir / "config.json", "w") as f:
                 json.dump({
-                    "remote_id": str(resource_id),
+                    "remote_id": str(folder_id),
                     "last_sync": datetime.now().isoformat()
                 }, f, indent=2)
 
             # Now save metadata for the folder and its contents
-            folder_info = self.folder.get_folder(resource_id)
+            folder_info = self.folder.get_folder(folder_id)
             folder_name = folder_info.get("folder", {}).get("name", "root")
 
             # Get maps and subfolders
@@ -923,11 +901,11 @@ class MapHubClient:
 
             # Save folder metadata
             parent_id = folder_info.get("folder", {}).get("parent_folder_id")
-            self._save_folder_metadata(resource_id, folder_name, parent_id, map_ids, subfolder_ids, maphub_dir)
+            self._save_folder_metadata(folder_id, folder_name, parent_id, map_ids, subfolder_ids, maphub_dir)
 
             print(f"Successfully cloned folder structure to {result_path}")
         except Exception as e:
-            print(f"Error: Failed to clone resource with ID {resource_id}: {e}")
+            print(f"Error: Failed to clone folder with ID {folder_id}: {e}")
             import traceback
             traceback.print_exc()
             return
@@ -937,7 +915,7 @@ class MapHubClient:
         Pull latest changes from MapHub.
 
         This method should be called from within a directory that was previously cloned.
-        It will update any maps that have changed on the server.
+        It will update any maps in the folder that have changed on the server.
 
         Args:
             root_dir: Root directory of the repository
@@ -953,31 +931,11 @@ class MapHubClient:
             raise
 
         # Get the remote ID
-        remote_id = uuid.UUID(config["remote_id"])
+        folder_id = uuid.UUID(config["remote_id"])
 
-        # Try to pull as map
+        # Pull the folder
         try:
-            # Check if it's a map
-            map_file = maphub_dir / "maps" / f"{remote_id}.json"
-            if map_file.exists():
-                with open(map_file, "r") as f:
-                    map_metadata = json.load(f)
-
-                self.pull_map(remote_id, map_metadata, root_dir, maphub_dir)
-
-                # Update config
-                config["last_sync"] = datetime.now().isoformat()
-                with open(maphub_dir / "config.json", "w") as f:
-                    json.dump(config, f, indent=2)
-
-                return
-        except Exception as e:
-            # Not a map, try as folder
-            print(f"Not a map or error occurred: {e}. Trying as folder...")
-
-        # Start pulling from the root folder
-        try:
-            self.pull_folder(remote_id, root_dir, root_dir, maphub_dir)
+            self.pull_folder(folder_id, root_dir, root_dir, maphub_dir)
 
             # Update config
             config["last_sync"] = datetime.now().isoformat()
@@ -996,7 +954,7 @@ class MapHubClient:
         Push local changes to MapHub.
 
         This method should be called from within a directory that was previously cloned.
-        It will upload any maps that have changed locally.
+        It will upload any maps in the folder that have changed locally.
 
         Args:
             root_dir: Root directory of the repository
@@ -1013,31 +971,11 @@ class MapHubClient:
             raise
 
         # Get the remote ID
-        remote_id = uuid.UUID(config["remote_id"])
+        folder_id = uuid.UUID(config["remote_id"])
 
-        # Try to push as map
+        # Push the folder
         try:
-            # Check if it's a map
-            map_file = maphub_dir / "maps" / f"{remote_id}.json"
-            if map_file.exists():
-                with open(map_file, "r") as f:
-                    map_metadata = json.load(f)
-
-                self.push_map(remote_id, map_metadata, root_dir, maphub_dir, version_description)
-
-                # Update config
-                config["last_sync"] = datetime.now().isoformat()
-                with open(maphub_dir / "config.json", "w") as f:
-                    json.dump(config, f, indent=2)
-
-                return
-        except Exception as e:
-            # Not a map, try as folder
-            print(f"Not a map or error occurred: {e}. Trying as folder...")
-
-        # Start pushing from the root folder
-        try:
-            self.push_folder(remote_id, root_dir, root_dir, maphub_dir, version_description)
+            self.push_folder(folder_id, root_dir, root_dir, maphub_dir, version_description)
 
             # Update config
             config["last_sync"] = datetime.now().isoformat()
