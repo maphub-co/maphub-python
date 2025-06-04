@@ -438,10 +438,10 @@ class MapHubClient:
 
         # Determine the file extension based on the map type
         extension = ".gpkg"  # Default to GeoPackage
-        if map_type == "geojson":
-            extension = ".geojson"
-        elif map_type == "shapefile":
-            extension = ".zip"  # Shapefiles are typically zipped
+        if map_type == "raster":
+            extension = ".tif"
+        elif map_type == "vector":
+            extension = ".fgb"  # Shapefiles are typically zipped
 
         # Create the file path
         file_path = str(save_dir / f"{map_name}{extension}")
@@ -550,7 +550,7 @@ class MapHubClient:
             maphub_dir: Path to the .maphub directory
         """
         try:
-            map_data = self.maps.get_map(map_id)
+            map_data = self.maps.get_map(map_id)['map']
             print(f"Cloning map: {map_data.get('name', 'Unnamed Map')}")
 
             # Get the file path for the map
@@ -579,23 +579,23 @@ class MapHubClient:
         """
         try:
             # Get the latest map info
-            map_data = self.maps.get_map(map_id)
+            map_data = self.maps.get_map(map_id)['map']
 
             # Check if the version has changed
-            if map_data.get('map', {})["latest_version_id"] != map_metadata["version_id"]:
-                print(f"Pulling updates for map: {map_data.get('map', {}).get('name', 'Unnamed Map')}")
+            if map_data["latest_version_id"] != map_metadata["version_id"]:
+                print(f"Pulling updates for map: {map_data.get('name', 'Unnamed Map')}")
 
                 # Get the current map path
                 map_path = root_dir / map_metadata["path"]
 
                 # Get the new file path for the map
-                file_path = self._get_file_path_for_map(map_data.get('map'), map_path.parent)
+                file_path = self._get_file_path_for_map(map_data, map_path.parent)
 
                 # Download the map
                 self.maps.download_map(map_id, file_path)
 
                 # Update metadata
-                map_metadata["version_id"] = map_data.get('map', {})["latest_version_id"]
+                map_metadata["version_id"] = map_data["latest_version_id"]
                 map_metadata["checksum"] = map_data.get("checksum", self._calculate_checksum(file_path))
                 map_metadata["last_modified"] = map_data.get("updated_at")
                 map_metadata["path"] = str(Path(file_path).relative_to(root_dir))
@@ -604,9 +604,9 @@ class MapHubClient:
                 with open(maphub_dir / "maps" / f"{map_id}.json", "w") as f:
                     json.dump(map_metadata, f, indent=2)
 
-                print(f"Successfully updated map: {map_data.get('map', {}).get('name', 'Unnamed Map')}")
+                print(f"Successfully updated map: {map_data.get('name', 'Unnamed Map')}")
             else:
-                print(f"Map is already up to date: {map_data.get('map', {}).get('name', 'Unnamed Map')}")
+                print(f"Map is already up to date: {map_data.get('name', 'Unnamed Map')}")
         except Exception as e:
             print(f"Error pulling map {map_id}: {e}")
 
