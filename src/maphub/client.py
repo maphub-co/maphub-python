@@ -843,7 +843,7 @@ class MapHubClient:
             import traceback
             traceback.print_exc()
 
-    def clone(self, folder_id: uuid.UUID, output_dir: Path) -> None:
+    def clone(self, folder_id: uuid.UUID, output_dir: Path) -> Optional[Path]:
         """
         Clone a folder from MapHub to local directory.
 
@@ -904,11 +904,12 @@ class MapHubClient:
             self._save_folder_metadata(folder_id, folder_name, parent_id, map_ids, subfolder_ids, maphub_dir)
 
             print(f"Successfully cloned folder structure to {result_path}")
+            return result_path
         except Exception as e:
             print(f"Error: Failed to clone folder with ID {folder_id}: {e}")
             import traceback
             traceback.print_exc()
-            return
+            return None
 
     def pull(self, root_dir: Path) -> None:
         """
