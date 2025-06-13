@@ -602,6 +602,10 @@ class MapHubClient:
             if map_data["latest_version_id"] != map_metadata["version_id"]:
                 print(f"Pulling updates for map: {map_data.get('name', 'Unnamed Map')}")
 
+                latest_version = self.versions.get_version(map_data["latest_version_id"])
+                if latest_version["state"]["status"] != "completed":
+                    raise Exception(f"New Version {map_data['latest_version_id']} is not ready yet.")
+
                 # Get the current map path
                 map_path = root_dir / map_metadata["path"]
 
